@@ -10,10 +10,13 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.lang.Exception
+import java.text.SimpleDateFormat
+import java.util.*
 
 enum class WeatherApiStatus { LOADING, DONE, ERROR }
 
 private const val TAG = "WeatherModel"
+private const val API_KEY = "e344dcc8b8b60513f8a76f7bff183df0"
 
 class WeatherModel : ViewModel() {
 
@@ -23,8 +26,8 @@ class WeatherModel : ViewModel() {
     private val _status: MutableLiveData<WeatherApiStatus> = MutableLiveData()
     val status: LiveData<WeatherApiStatus> get() = _status
 
-    private val _currentWeather: MutableLiveData<CurrentWeather> = MutableLiveData()
-    val currentWeather: LiveData<CurrentWeather> = _currentWeather
+    private val _weatherData  : MutableLiveData<WeatherData> = MutableLiveData()
+    val weatherData: LiveData<WeatherData> = _weatherData
 
     private val _city: MutableLiveData<String> = MutableLiveData()
     val city: LiveData<String> get() = _city
@@ -38,38 +41,39 @@ class WeatherModel : ViewModel() {
         _city.value = city
     }
 
-    private fun getCurrentWeatherData() {
-        Log.d(TAG, "getCurrentWeatherData: ")
+     fun getWeatherData(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             _status.value = WeatherApiStatus.LOADING
             try {
                 val listResult = WeatherApi.retrofitService.getCurrentWeatherData(
-                    latitude = "37.39",
-                    longitude = "-122.08",
-                    appKey = "e344dcc8b8b60513f8a76f7bff183df0"
+                    latitude = latitude,
+                    longitude = longitude,
+                    appKey = API_KEY,
+                    unit = "metric",
+                    exclude = "minutely,alerts"
                 )
 
-                listResult.enqueue(object : Callback<CurrentWeather> {
-                    override fun onResponse(call: Call<CurrentWeather>, response: Response<CurrentWeather>) {
-                        Log.d(TAG,"onResponse")
+                listResult.enqueue(object : Callback<WeatherData> {
+                    override fun onResponse(call: Call<WeatherData>, response: Response<WeatherData>) {
                         if(response.code() == 200) {
-                            val currentWeather = response.body()
-                            if (currentWeather != null) {
-                                Log.d(TAG, "onResponse: Successful ${currentWeather.main.temp}")
+                            val data   = response.body()
+                            if (data != null) {
+                                Log.d(TAG, "onResponse: ${data.daily}")
+                                _weatherData.value = data
                             }
                         }
                     }
-                    override fun onFailure(call: Call<CurrentWeather>, t: Throwable) {
+                    override fun onFailure(call: Call<WeatherData>, t: Throwable) {
                         Log.d(TAG, "onFailure: Failure ${t.message}")
 
                     }
                 })
-
-
                 _status.value = WeatherApiStatus.DONE
             } catch (e: Exception) {
                 _status.value = WeatherApiStatus.ERROR
             }
         }
     }
+
+
 }

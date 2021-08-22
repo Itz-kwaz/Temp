@@ -3,4 +3,11 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="today">Today</string>
+    <string name="celsius_symbol">°C</string>
+    <string name="next_7days">Next 7days</string>
+    <string name="min_temp">/%s °C </string>
+    <string name="temperature">%s °C </string>
+
+
+
 </resources>
