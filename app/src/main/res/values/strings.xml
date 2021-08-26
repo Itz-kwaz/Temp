@@ -7,7 +7,7 @@
     <string name="next_7days">Next 7days</string>
     <string name="min_temp">/%s °C </string>
     <string name="temperature">%s °C </string>
-
+    <string name="tomorrow">Tomorrow</string>
 
 
 </resources>

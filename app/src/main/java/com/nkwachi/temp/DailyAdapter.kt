@@ -8,6 +8,7 @@ import com.nkwachi.temp.weather.DailyWeather
 
 class DailyAdapter(private var dailyWeatherList: ArrayList<DailyWeather>):  RecyclerView.Adapter<DailyWeatherViewHolder>(){
 
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DailyWeatherViewHolder {
         val lp = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -26,8 +27,12 @@ class DailyAdapter(private var dailyWeatherList: ArrayList<DailyWeather>):  Recy
     override fun getItemCount(): Int = dailyWeatherList.size
 
     fun updateList(newDailyList: ArrayList<DailyWeather>) {
-        dailyWeatherList = newDailyList
-        notifyDataSetChanged()
+        if(newDailyList.isNotEmpty()) {
+            newDailyList.removeAt(0)
+            dailyWeatherList = newDailyList
+            notifyDataSetChanged()
+        }
+
     }
 
 }

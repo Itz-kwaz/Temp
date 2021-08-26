@@ -1,10 +1,10 @@
 package com.nkwachi.temp
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.nkwachi.temp.databinding.FragmentDaysBinding
 import com.nkwachi.temp.weather.DailyWeather
@@ -29,5 +29,6 @@ class DaysFragment : Fragment() {
         binding.lifecycleOwner = this
         return binding.root
     }
+
 
 }

@@ -1,11 +1,15 @@
 package com.nkwachi.temp
 
 
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -36,15 +40,32 @@ class HomeFragment : Fragment() {
         return binding.root
     }
 
-   fun navigateTo7DaysScreen(){
-       findNavController().navigate(R.id.action_homeFragment_to_daysFragment)
-   }
-
-    fun showToast() {
-        val toast = Toast.makeText(context,"Today is a good day",Toast.LENGTH_SHORT)
-        toast.show()
+    fun navigateTo7DaysScreen() {
+        findNavController().navigate(R.id.action_homeFragment_to_daysFragment)
     }
 
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+        val textView = view.findViewById<TextView>(R.id.textView10)
+        textView.setOnClickListener {
+            val v: Vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
+            val pattern = longArrayOf(0, 100, 1000)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // API 26 and above
+                v.vibrate(VibrationEffect.createWaveform(pattern, 0));
+            } else {
+                // Below API 26
+                v.vibrate(pattern, 0);
+            }
+        }
+
+        val today = view.findViewById<TextView>(R.id.today_text_view)
+        today.setOnClickListener {
+            val v: Vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            v.cancel()
+        }
+    }
 }

@@ -12,7 +12,7 @@
     <FrameLayout
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:padding="16dp"
+        android:padding="8dp"
         >
 
         <LinearLayout
@@ -50,7 +50,7 @@
                 android:paddingTop="8dp"
                 android:layout_gravity="center"
                 android:text="@{@string/temperature(String.valueOf(hourlyWeather.temperature))}"
-                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                 tools:text="20" />
         </LinearLayout>
 

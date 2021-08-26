@@ -32,6 +32,10 @@ class WeatherModel : ViewModel() {
     private val _city: MutableLiveData<String> = MutableLiveData()
     val city: LiveData<String> get() = _city
 
+    init{
+        _status.value = WeatherApiStatus.LOADING
+    }
+
 
     fun setCountry(country: String) {
         _country.value = country
@@ -43,7 +47,6 @@ class WeatherModel : ViewModel() {
 
      fun getWeatherData(latitude: Double, longitude: Double) {
         viewModelScope.launch {
-            _status.value = WeatherApiStatus.LOADING
             try {
                 val listResult = WeatherApi.retrofitService.getCurrentWeatherData(
                     latitude = latitude,
@@ -58,17 +61,17 @@ class WeatherModel : ViewModel() {
                         if(response.code() == 200) {
                             val data   = response.body()
                             if (data != null) {
-                                Log.d(TAG, "onResponse: ${data.daily}")
                                 _weatherData.value = data
+                                _status.value = WeatherApiStatus.DONE
                             }
+                        }else {
+                            _status.value = WeatherApiStatus.ERROR
                         }
                     }
                     override fun onFailure(call: Call<WeatherData>, t: Throwable) {
-                        Log.d(TAG, "onFailure: Failure ${t.message}")
-
+                        _status.value = WeatherApiStatus.ERROR
                     }
                 })
-                _status.value = WeatherApiStatus.DONE
             } catch (e: Exception) {
                 _status.value = WeatherApiStatus.ERROR
             }
