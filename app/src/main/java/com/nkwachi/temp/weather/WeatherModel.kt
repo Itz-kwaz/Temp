@@ -1,6 +1,5 @@
 package com.nkwachi.temp.weather
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -10,8 +9,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.lang.Exception
-import java.text.SimpleDateFormat
-import java.util.*
+
 
 enum class WeatherApiStatus { LOADING, DONE, ERROR }
 

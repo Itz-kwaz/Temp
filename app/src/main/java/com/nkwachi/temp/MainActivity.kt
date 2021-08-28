@@ -46,7 +46,6 @@ class MainActivity : AppCompatActivity() {
             override fun onLocationResult(locationResult: LocationResult?) {
                 locationResult ?: return
                 for (location in locationResult.locations) {
-                    Log.d(TAG, "Location is null On Activity Result")
                     parseLocation(location)
                 }
             }
@@ -200,14 +199,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun parseLocation(location: Location) {
-        val geocoder = Geocoder(this, Locale.getDefault())
-        val addresses =
-            geocoder.getFromLocation(location.latitude, location.longitude, 1)
-        val address = addresses[0]
-        val cityName = address.locality
-        val countryName = address.countryName
-        weatherModel.setCity(cityName)
-        weatherModel.setCountry(countryName)
+        try{
+            val geocoder = Geocoder(this, Locale.getDefault())
+            val addresses =
+                geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val address = addresses[0]
+            val cityName = address.locality
+            val countryName = address.countryName
+            weatherModel.setCity(cityName)
+            weatherModel.setCountry(countryName)
+        }catch(e: Exception){
+
+        }
         weatherModel.getWeatherData(location.latitude, location.longitude)
     }
 
