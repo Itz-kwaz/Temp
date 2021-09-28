@@ -9,9 +9,11 @@ import androidx.fragment.app.activityViewModels
 import com.nkwachi.temp.databinding.FragmentDaysBinding
 import com.nkwachi.temp.weather.DailyWeather
 import com.nkwachi.temp.weather.WeatherModel
+import dagger.hilt.android.AndroidEntryPoint
 import java.util.ArrayList
 
 
+@AndroidEntryPoint
 class DaysFragment : Fragment() {
 
     private val weatherModel: WeatherModel by activityViewModels()
@@ -27,6 +29,7 @@ class DaysFragment : Fragment() {
         val list: ArrayList<DailyWeather> = ArrayList()
         binding.dailyWeatherList.adapter =  DailyAdapter(list)
         binding.lifecycleOwner = this
+
         return binding.root
     }
 

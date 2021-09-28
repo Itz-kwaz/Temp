@@ -1,25 +1,35 @@
 package com.nkwachi.temp.weather
 
+import android.location.Geocoder
+import android.location.Location
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.common.api.ResolvableApiException
+import com.nkwachi.temp.repository.LocationRepository
+import com.nkwachi.temp.repository.WeatherRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.lang.Exception
+import javax.inject.Inject
 
 
 enum class WeatherApiStatus { LOADING, DONE, ERROR }
 
 private const val TAG = "WeatherModel"
-private const val API_KEY = "e344dcc8b8b60513f8a76f7bff183df0"
 
-class WeatherModel : ViewModel() {
+@HiltViewModel
+class WeatherModel @Inject constructor(): ViewModel() {
+
+    @Inject lateinit var weatherRepository: WeatherRepository
+    @Inject lateinit var geocoder:Geocoder
+    @Inject lateinit var locationRepository: LocationRepository
 
     private val _country: MutableLiveData<String> = MutableLiveData()
     val country: LiveData<String> get() = _country
+    var locationPermission = false;
 
     private val _status: MutableLiveData<WeatherApiStatus> = MutableLiveData()
     val status: LiveData<WeatherApiStatus> get() = _status
@@ -30,49 +40,53 @@ class WeatherModel : ViewModel() {
     private val _city: MutableLiveData<String> = MutableLiveData()
     val city: LiveData<String> get() = _city
 
+
     init{
         _status.value = WeatherApiStatus.LOADING
+        Log.d(TAG, ": Location permissison is $locationPermission")
     }
 
 
-    fun setCountry(country: String) {
-        _country.value = country
-    }
 
-    fun setCity(city: String) {
-        _city.value = city
-    }
-
-     fun getWeatherData(latitude: Double, longitude: Double) {
+     private fun getWeatherData(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             try {
-                val listResult = WeatherApi.retrofitService.getCurrentWeatherData(
-                    latitude = latitude,
-                    longitude = longitude,
-                    appKey = API_KEY,
-                    unit = "metric",
-                    exclude = "minutely,alerts"
-                )
+               val data = weatherRepository.getWeatherData(latitude,longitude)
+                if (data != null) {
+                    _weatherData.value = data
+                    _status.value = WeatherApiStatus.DONE
+                }
 
-                listResult.enqueue(object : Callback<WeatherData> {
-                    override fun onResponse(call: Call<WeatherData>, response: Response<WeatherData>) {
-                        if(response.code() == 200) {
-                            val data   = response.body()
-                            if (data != null) {
-                                _weatherData.value = data
-                                _status.value = WeatherApiStatus.DONE
-                            }
-                        }else {
-                            _status.value = WeatherApiStatus.ERROR
-                        }
-                    }
-                    override fun onFailure(call: Call<WeatherData>, t: Throwable) {
-                        _status.value = WeatherApiStatus.ERROR
-                    }
-                })
             } catch (e: Exception) {
                 _status.value = WeatherApiStatus.ERROR
             }
+        }
+    }
+
+    fun requestLocation(handleException:(ResolvableApiException) -> Unit) {
+        locationRepository.requestLocation({location ->
+            parseLocation(location)
+        },{
+            handleException(it)
+        })
+    }
+
+  private fun parseLocation(location: Location) {
+        try{
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val address = addresses[0]
+            _city.value = address.locality
+            _country.value = address.countryName
+        }catch(e: Exception){
+
+        }
+        getWeatherData(location.latitude, location.longitude)
+    }
+
+
+    fun getLastLocation() {
+        locationRepository.getLastLocation{
+            parseLocation(it)
         }
     }
 

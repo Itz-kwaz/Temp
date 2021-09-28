@@ -5,10 +5,8 @@ import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Geocoder
-import android.location.Location
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -16,23 +14,29 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.google.android.gms.common.api.ResolvableApiException
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.gms.location.*
-import com.google.android.gms.tasks.Task
+import com.nkwachi.temp.repository.LocationRepository
 import com.nkwachi.temp.weather.WeatherModel
-import java.util.*
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 
 private const val TAG = "MainActivityLOG"
-private const val REQUEST_CHECK_SETTINGS = 100
+const val REQUEST_CHECK_SETTINGS = 100
 
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
-    private lateinit var locationCallback: LocationCallback
+    private lateinit var navController: NavController
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var client: SettingsClient
+
     private val weatherModel: WeatherModel by viewModels()
 
 
@@ -41,20 +45,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        client = LocationServices.getSettingsClient(this)
 
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
-                for (location in locationResult.locations) {
-                    parseLocation(location)
-                }
-            }
-        }
+
+        // Retrieve NavController from the NavHostFragment
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        navController = navHostFragment.navController
+
+        // Set up the action bar for use with the NavController
+        setupActionBarWithNavController(navController)
 
         requestPermission()
 
         requestLocation()
 
+    }
+
+    /**
+     * Handle navigation when the user chooses Up from the action bar.
+     */
+    override fun onSupportNavigateUp(): Boolean {
+        return navController.navigateUp() || super.onSupportNavigateUp()
     }
 
     private fun requestPermission() {
@@ -63,12 +75,15 @@ class MainActivity : AppCompatActivity() {
                 ActivityResultContracts.RequestPermission()
             ) { isGranted: Boolean ->
                 if (isGranted) {
+                    Log.d(TAG, "requestPermission: Permission Granted")
                     requestLocation()
                 } else {
-                    Log.d(TAG, "Permission denied")
-                    //TODO:  Explain to the user that the feature is unavailable because the
-                    // features requires a permission that the user has denied. At the
-                    // same time, respect the user's decision. Don't link to system settings in an effort to convince the user to change their  decision.
+                    Toast.makeText(
+                        this,
+                        "Can't fetch data without location permission",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    //TODO:Change to alert dialog
                 }
             }
     }
@@ -80,45 +95,21 @@ class MainActivity : AppCompatActivity() {
             REQUEST_CHECK_SETTINGS -> {
                 when (resultCode) {
                     RESULT_OK -> {
-                        Log.d(TAG, "onActivityResult: request Location")
                         if (ActivityCompat.checkSelfPermission(
                                 this,
                                 Manifest.permission.ACCESS_FINE_LOCATION
-                            ) != PackageManager.PERMISSION_GRANTED
+                            ) == PackageManager.PERMISSION_GRANTED
                         ) {
-                            return
-                        }
-                        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-                        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                            // Got last known location. In some rare situations this can be null.
-                            if (location != null) {
+                            weatherModel.getLastLocation()
 
-                                // Logic to handle location object
-                                parseLocation(location)
-
-                            } else {
-                                val mLocationRequest = LocationRequest.create().apply {
-                                    interval = 10000
-                                    fastestInterval = 5000
-                                    priority = LocationRequest.PRIORITY_LOW_POWER
-                                    numUpdates = 1
-                                }
-
-                                fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-                                fusedLocationClient.requestLocationUpdates(
-                                    mLocationRequest, locationCallback,
-                                    Looper.getMainLooper()
-                                )
-                            }
                         }
                     }
                     RESULT_CANCELED -> {
-                        val toast = Toast.makeText(
+                        Toast.makeText(
                             this,
                             "Put on Location to get current weather ",
                             Toast.LENGTH_SHORT
-                        )
-                        toast.show()
+                        ).show()
                     }
                 }
             }
@@ -139,81 +130,19 @@ class MainActivity : AppCompatActivity() {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         } else {
 
-            val locationRequest = LocationRequest.create().apply {
-                interval = 10000
-                fastestInterval = 5000
-                priority = LocationRequest.PRIORITY_LOW_POWER
-            }
-            val builder = LocationSettingsRequest.Builder()
-                .addLocationRequest(locationRequest)
 
-            val client: SettingsClient = LocationServices.getSettingsClient(this)
-            val task: Task<LocationSettingsResponse> = client.checkLocationSettings(builder.build())
+            weatherModel.requestLocation{ exception ->
+                try {
+                    exception.startResolutionForResult(this, REQUEST_CHECK_SETTINGS)
+                }catch (e:IntentSender.SendIntentException){
 
-            task.addOnSuccessListener {
-                Log.d(TAG, "requestLocation: Settings satisfied ")
-                fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                    // Got last known location. In some rare situations this can be null.
-                    if (location != null) {
-
-                        // Logic to handle location object
-                        parseLocation(location)
-
-                    }else{
-                        Log.d(TAG, "Location is null Request Location")
-
-                        val mLocationRequest = LocationRequest.create().apply {
-                            interval = 10000
-                            fastestInterval = 5000
-                            priority = LocationRequest.PRIORITY_LOW_POWER
-                            numUpdates = 1
-                        }
-
-                        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-                        fusedLocationClient.requestLocationUpdates(
-                            mLocationRequest, locationCallback,
-                            Looper.getMainLooper()
-                        )
-                    }
                 }
             }
 
-            task.addOnFailureListener { exception ->
-                if (exception is ResolvableApiException) {
 
-                    Log.d(TAG, "EXCEPTION RESOLVABLE")
-                    try {
-                        exception.startResolutionForResult(
-                            this@MainActivity,
-                            REQUEST_CHECK_SETTINGS
-                        )
-                    } catch (sendEx: IntentSender.SendIntentException) {
-                        //Ignore the error
-                    }
-                } else {
-                    Log.d(TAG, "EXCEPTION NOT RESOLVABLE")
-                }
-            }
 
         }
     }
-
-    private fun parseLocation(location: Location) {
-        try{
-            val geocoder = Geocoder(this, Locale.getDefault())
-            val addresses =
-                geocoder.getFromLocation(location.latitude, location.longitude, 1)
-            val address = addresses[0]
-            val cityName = address.locality
-            val countryName = address.countryName
-            weatherModel.setCity(cityName)
-            weatherModel.setCountry(countryName)
-        }catch(e: Exception){
-
-        }
-        weatherModel.getWeatherData(location.latitude, location.longitude)
-    }
-
 
 
 }
