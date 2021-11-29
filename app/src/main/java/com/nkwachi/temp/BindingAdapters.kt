@@ -37,6 +37,7 @@ fun bindRecyclerView(recyclerView: RecyclerView, data: List<HourlyWeather>?) {
 @BindingAdapter("listDataDaily")
 fun bindRecyclerViewDailyWeather(recyclerView: RecyclerView, data: List<DailyWeather>?) {
     val adapter = recyclerView.adapter as DailyAdapter
+
     if (data != null) {
 
         adapter.updateList(data as ArrayList<DailyWeather>)
